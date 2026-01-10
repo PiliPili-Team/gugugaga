@@ -62,7 +62,7 @@ impl Register {
         tracing::info!("Registering channel for Google Drive notifications");
         let req = self
             .hub
-            .files()
+            .changes()
             .watch(Channel::default(), "pageToken")
             .add_scope(Self::SCOPE)
             .doit()
