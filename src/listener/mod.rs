@@ -4,20 +4,26 @@ mod server;
 use register::*;
 use server::*;
 
-// We have Register which handles token refresh and channel registration
-// and Server which handles incoming HTTP requests
-// These 2 components should running in 2 threads
-pub struct Listener {
-    register: Register,
-    server: Server,
-}
+pub async fn start_serve() {
+    let mut register = Register::new().await;
+    let mut server = Server::new().await;
 
-impl Listener {
-    pub async fn new() -> Self {
-        todo!()
-    }
-
-    pub async fn serve(&mut self) -> anyhow::Result<()> {
-        todo!()
+    let register_handle = tokio::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600 * 24));
+        loop {
+            register.try_renew_channel().await;
+            interval.tick().await;
+        }
+    });
+    
+    tokio::select! {
+        res = server.run() => {
+            if let Err(e) = res {
+                tracing::error!("Server error: {:?}", e);
+            }
+        }
+        _ = register_handle => {
+            tracing::info!("Register task ended");
+        }
     }
 }

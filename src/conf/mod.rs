@@ -44,7 +44,10 @@ impl Conf {
     pub fn load_or_create() -> miette::Result<Self> {
         const PATH: &str = "config.kdl";
 
-        let path = Path::new(PATH);
+        let path = dirs::config_dir()
+            .expect("Failed to get config directory")
+            .join("gugugaga")
+            .join(PATH);
         if !path.exists() {
             tracing::info!("config file {PATH} does not exist, creating default config");
             create_dir_all(path.parent().unwrap()).into_diagnostic()?;
@@ -52,7 +55,7 @@ impl Conf {
             process::exit(0);
         }
 
-        Self::load(path)
+        Self::load(&path.to_path_buf())
     }
 }
 

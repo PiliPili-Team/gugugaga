@@ -1,15 +1,15 @@
 mod args;
 mod conf;
 mod listener;
+mod notifier;
 
 use args::*;
 use clap::Parser;
 use listener::*;
+use notifier::*;
 
-pub async fn start_serve() {
+pub async fn run() {
     Args::parse().init();
-
-    if let Err(e) = Listener::new().await.serve().await {
-        tracing::error!("Error occurred: {:?}", e);
-    };
+    
+    start_serve().await;
 }

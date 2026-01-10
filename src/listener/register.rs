@@ -13,11 +13,11 @@ pub struct Register {
 impl Register {
     const SCOPE: &'static str = "https://www.googleapis.com/auth/drive.metadata.readonly";
 
-    async fn new() -> Self {
+    pub async fn new() -> Self {
         tracing::info!("Initializing Google Drive Notification Listener");
-        let secret_dir = home_dir()
+        let secret_dir = dirs::config_dir()
             .expect("Failed to get home directory")
-            .join(".gugugaga");
+            .join("gugugaga");
         let secret_path = Path::new(&secret_dir).join("client_secret.json");
 
         if !secret_path.exists() {
@@ -28,8 +28,11 @@ impl Register {
             .await
             .unwrap_or_else(|e| panic!("{}", e.to_string()));
 
+        // Since we wont implement a web server to handle the redirect, this program should be run
+        // firstly in a GUI environment to complete the OAuth2 flow.
         let auth =
             InstalledFlowAuthenticator::builder(secret, InstalledFlowReturnMethod::HTTPRedirect)
+                .persist_tokens_to_disk(secret_dir.join("token_cache.json"))
                 .build()
                 .await
                 .unwrap_or_else(|e| panic!("{}", e.to_string()));
@@ -61,6 +64,7 @@ impl Register {
             .hub
             .files()
             .watch(Channel::default(), "pageToken")
+            .add_scope(Self::SCOPE)
             .doit()
             .await;
 
@@ -96,7 +100,7 @@ impl Register {
         }
     }
 
-    async fn try_renew_channel(&mut self) {
+    pub async fn try_renew_channel(&mut self) {
         // TODO: awaits should return Result<>
         tracing::info!("Renewing channel...");
         self.remove_channel().await;
