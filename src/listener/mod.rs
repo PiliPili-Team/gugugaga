@@ -4,8 +4,10 @@ mod server;
 use register::*;
 use server::*;
 
-pub async fn start_serve() {
-    let mut register = Register::new().await;
+use crate::conf::*;
+
+pub async fn start_serve(conf: Conf) {
+    let mut register = Register::new(conf.register_conf).await;
     let mut server = Server::new().await;
 
     let register_handle = tokio::spawn(async move {

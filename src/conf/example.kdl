@@ -1,1 +1,12 @@
-drive_id ""
+// The drive_id can be none
+// drive-id "drive-id"
+
+register-conf {
+    address "https://example.com"
+}
+
+server-conf {
+    port 6933
+    // The final url to receive notifications will be https://example.com/notification
+    notification-endpoint "/notification"
+}

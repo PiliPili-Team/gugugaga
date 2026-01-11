@@ -5,15 +5,19 @@ use hyper_util::client::legacy::connect::HttpConnector;
 use std::{env::home_dir, path::Path};
 use yup_oauth2::*;
 
+use crate::conf::RegisterConf;
+
 pub struct Register {
     hub: DriveHub<HttpsConnector<HttpConnector>>,
     current_channel: Option<Channel>,
+    register_conf: RegisterConf,
 }
 
 impl Register {
     const SCOPE: &'static str = "https://www.googleapis.com/auth/drive.metadata.readonly";
+    const CHANNEL_ID: &'static str = "gugugaga-notification-channel";
 
-    pub async fn new() -> Self {
+    pub async fn new(conf: RegisterConf) -> Self {
         tracing::info!("Initializing Google Drive Notification Listener");
         let secret_dir = dirs::config_dir()
             .expect("Failed to get home directory")
@@ -55,15 +59,23 @@ impl Register {
         Self {
             hub,
             current_channel: None,
+            register_conf: conf
         }
     }
 
     async fn register_channel(&mut self) {
         tracing::info!("Registering channel for Google Drive notifications");
+        let channel = Channel {
+            address: Some(self.register_conf.address.clone()),
+            id: Some(Self::CHANNEL_ID.to_string()),
+            type_: Some("webhook".to_string()),
+            ..Default::default()
+        };
+
         let req = self
             .hub
             .changes()
-            .watch(Channel::default(), "pageToken")
+            .watch(channel, "pageToken")
             .add_scope(Self::SCOPE)
             .doit()
             .await;

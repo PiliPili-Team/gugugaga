@@ -11,13 +11,28 @@ pub const INVALIDATE_SECS: u64 = 86400 * 7;
 
 #[derive(knuffel::Decode, Debug, PartialEq, Default)]
 pub struct Conf {
-    #[knuffel(child, unwrap(argument), default)]
+    #[knuffel(child, unwrap(argument), default = None)]
     pub drive_id: Option<String>,
-    #[knuffel(child, unwrap(argument), default)]
-    pub client_id: Option<String>,
-    #[knuffel(child, unwrap(argument), default)]
-    pub client_secret: Option<String>,
+    #[knuffel(child)]
+    pub register_conf: RegisterConf,
+    #[knuffel(child)]
+    pub server_conf: ServerConf,
 }
+
+#[derive(knuffel::Decode, Debug, PartialEq, Default)]
+pub struct RegisterConf {
+    #[knuffel(child, unwrap(argument))]
+    pub address: String,
+}
+
+#[derive(knuffel::Decode, Debug, PartialEq, Default)]
+pub struct ServerConf {
+    #[knuffel(child, unwrap(argument), default = 6933)]
+    pub port: u16,
+    #[knuffel(child, unwrap(argument), default = "/notification".to_string())]
+    pub notification_endpoint: String,
+}
+
 
 impl Conf {
     fn load(path: &Path) -> miette::Result<Self> {
@@ -48,6 +63,7 @@ impl Conf {
             .expect("Failed to get config directory")
             .join("gugugaga")
             .join(PATH);
+        
         if !path.exists() {
             tracing::info!("config file {PATH} does not exist, creating default config");
             create_dir_all(path.parent().unwrap()).into_diagnostic()?;
@@ -65,12 +81,19 @@ mod tests {
 
     #[test]
     fn test_conf() {
-        let conf = r#"
-            drive-id "123456"
-        "#;
-        let conf: Conf = knuffel::parse("example.kdl", conf).unwrap();
-        assert_eq!(conf.drive_id, Some("123456".to_string()));
-        assert_eq!(conf.client_secret, None);
-        assert_eq!(conf.client_id, None);
+        let conf = Conf::load(Path::new("src/conf/example.kdl")).unwrap();
+        assert_eq!(
+            conf,
+            Conf {
+                drive_id: None,
+                register_conf: RegisterConf {
+                    address: "https://example.com".to_string(),
+                },
+                server_conf: ServerConf {
+                    port: 6933,
+                    notification_path: "/notification".to_string(),
+                },
+            }
+        );
     }
 }
