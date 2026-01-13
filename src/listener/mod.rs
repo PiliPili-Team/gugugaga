@@ -13,8 +13,8 @@ pub async fn start_serve(conf: Conf) {
     let register_handle = tokio::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600 * 24));
         loop {
-            register.try_renew_channel().await;
             interval.tick().await;
+            register.try_renew_channel().await;
         }
     });
     

@@ -29,8 +29,6 @@ pub struct RegisterConf {
 pub struct ServerConf {
     #[knuffel(child, unwrap(argument), default = 6933)]
     pub port: u16,
-    #[knuffel(child, unwrap(argument), default = "/notification".to_string())]
-    pub notification_endpoint: String,
 }
 
 
@@ -91,7 +89,6 @@ mod tests {
                 },
                 server_conf: ServerConf {
                     port: 6933,
-                    notification_path: "/notification".to_string(),
                 },
             }
         );

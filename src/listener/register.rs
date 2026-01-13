@@ -2,7 +2,7 @@ use google_drive3::DriveHub;
 use google_drive3::api::Channel;
 use hyper_rustls::HttpsConnector;
 use hyper_util::client::legacy::connect::HttpConnector;
-use std::{env::home_dir, path::Path};
+use std::path::Path;
 use yup_oauth2::*;
 
 use crate::conf::RegisterConf;
@@ -87,18 +87,21 @@ impl Register {
             }
             Err(e) => {
                 tracing::error!("Error registering channel: {:?}", e);
+                // FIXME: shouldn't panic here
                 panic!("Failed to register channel");
             }
         }
     }
 
     async fn remove_channel(&mut self) {
-        let Some(channel) = self.current_channel.take() else {
-            tracing::warn!("No current client to remove channel for");
-            return;
+        let channel = Channel {
+            address: Some(self.register_conf.address.clone()),
+            id: Some(Self::CHANNEL_ID.to_string()),
+            type_: Some("webhook".to_string()),
+            ..Default::default()
         };
 
-        tracing::info!("Removing last channel...");
+        tracing::info!("Removing channel...");
         let req = self.hub.channels().stop(channel).doit().await;
 
         match req {

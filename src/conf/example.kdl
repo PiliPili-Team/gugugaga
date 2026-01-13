@@ -7,6 +7,4 @@ register-conf {
 
 server-conf {
     port 6933
-    // The final url to receive notifications will be https://example.com/notification
-    notification-endpoint "/notification"
 }
