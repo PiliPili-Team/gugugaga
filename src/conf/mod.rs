@@ -9,7 +9,7 @@ use miette::{IntoDiagnostic, miette};
 pub const REFRESH_SECS: u64 = 86400;
 pub const INVALIDATE_SECS: u64 = 86400 * 7;
 
-#[derive(knuffel::Decode, Debug, PartialEq, Default)]
+#[derive(knuffel::Decode, Debug, PartialEq, Default, Clone)]
 pub struct Conf {
     #[knuffel(child, unwrap(argument), default = None)]
     pub drive_id: Option<String>,
@@ -19,13 +19,13 @@ pub struct Conf {
     pub server_conf: ServerConf,
 }
 
-#[derive(knuffel::Decode, Debug, PartialEq, Default)]
+#[derive(knuffel::Decode, Debug, PartialEq, Default, Clone)]
 pub struct RegisterConf {
     #[knuffel(child, unwrap(argument))]
     pub address: String,
 }
 
-#[derive(knuffel::Decode, Debug, PartialEq, Default)]
+#[derive(knuffel::Decode, Debug, PartialEq, Default, Clone)]
 pub struct ServerConf {
     #[knuffel(child, unwrap(argument), default = 6933)]
     pub port: u16,

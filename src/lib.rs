@@ -2,6 +2,7 @@ mod args;
 mod conf;
 mod listener;
 mod notifier;
+mod db;
 
 use args::*;
 use clap::Parser;
@@ -9,6 +10,7 @@ use listener::*;
 use notifier::*;
 
 pub use conf::*;
+pub use db::DB;
 
 pub async fn run() {
     Args::parse().init();

@@ -8,7 +8,7 @@ use crate::conf::*;
 
 pub async fn start_serve(conf: Conf) {
     let mut register = Register::new(conf.register_conf).await;
-    let mut server = Server::new().await;
+    let server = Server::new(conf.server_conf).await;
 
     let register_handle = tokio::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600 * 24));

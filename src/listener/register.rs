@@ -1,3 +1,4 @@
+use anyhow::Result;
 use google_drive3::DriveHub;
 use google_drive3::api::Channel;
 use hyper_rustls::HttpsConnector;
@@ -5,17 +6,16 @@ use hyper_util::client::legacy::connect::HttpConnector;
 use std::path::Path;
 use yup_oauth2::*;
 
-use crate::conf::RegisterConf;
+use crate::{DB, conf::RegisterConf};
 
 pub struct Register {
     hub: DriveHub<HttpsConnector<HttpConnector>>,
-    current_channel: Option<Channel>,
     register_conf: RegisterConf,
 }
 
 impl Register {
     const SCOPE: &'static str = "https://www.googleapis.com/auth/drive.metadata.readonly";
-    const CHANNEL_ID: &'static str = "gugugaga-notification-channel";
+    const CHANNEL_ID: &'static str = "gugugaga-notification-channelv2";
 
     pub async fn new(conf: RegisterConf) -> Self {
         tracing::info!("Initializing Google Drive Notification Listener");
@@ -58,12 +58,11 @@ impl Register {
 
         Self {
             hub,
-            current_channel: None,
-            register_conf: conf
+            register_conf: conf,
         }
     }
 
-    async fn register_channel(&mut self) {
+    async fn register_channel(&mut self) -> Result<Channel> {
         tracing::info!("Registering channel for Google Drive notifications");
         let channel = Channel {
             address: Some(self.register_conf.address.clone()),
@@ -72,53 +71,49 @@ impl Register {
             ..Default::default()
         };
 
-        let req = self
+        let channel = self
             .hub
             .changes()
             .watch(channel, "pageToken")
             .add_scope(Self::SCOPE)
             .doit()
-            .await;
+            .await
+            .map_err(anyhow::Error::from)?
+            .1;
 
-        match req {
-            Ok((response, channel)) => {
-                tracing::info!("Channel registered successfully: {:?}", channel);
-                self.current_channel = Some(channel);
-            }
-            Err(e) => {
-                tracing::error!("Error registering channel: {:?}", e);
-                // FIXME: shouldn't panic here
-                panic!("Failed to register channel");
-            }
-        }
+        Ok(channel)
     }
 
-    async fn remove_channel(&mut self) {
-        let channel = Channel {
-            address: Some(self.register_conf.address.clone()),
-            id: Some(Self::CHANNEL_ID.to_string()),
-            type_: Some("webhook".to_string()),
-            ..Default::default()
-        };
-
+    async fn remove_channel(&mut self, channel: Channel) -> Result<()> {
         tracing::info!("Removing channel...");
-        let req = self.hub.channels().stop(channel).doit().await;
 
-        match req {
-            Ok(_) => {
-                tracing::info!("Channel removed successfully");
-            }
-            Err(e) => {
-                tracing::error!("Error removing channel: {:?}", e);
-                panic!("Failed to remove channel");
-            }
-        }
+        self.hub
+            .channels()
+            .stop(channel)
+            .add_scope(Self::SCOPE)
+            .doit()
+            .await
+            .map_err(anyhow::Error::from)?;
+        Ok(())
     }
 
     pub async fn try_renew_channel(&mut self) {
-        // TODO: awaits should return Result<>
         tracing::info!("Renewing channel...");
-        self.remove_channel().await;
-        self.register_channel().await;
+
+        if let Some(last_channel) = DB.last_channel() {
+            if let Err(e) = self.remove_channel(last_channel).await {
+                tracing::error!("Failed to remove last channel: {}", e.to_string());
+            }
+        }
+
+        match self.register_channel().await {
+            Ok(channel) => {
+                tracing::info!("Channel renewed successfully");
+                DB.set_last_channel(channel);
+            }
+            Err(e) => {
+                tracing::error!("Failed to register channel: {}", e.to_string());
+            }
+        }
     }
 }
